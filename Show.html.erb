@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vista en Tiempo Real</title>
+  <style>
+  /* Estilos para centrar el título */
+ 
+    h1 {
+      text-align: center;
+      font-family: "Montserrat", sans-serif; /* Utiliza la fuente Montserrat o la que prefieras */
+      font-size: 2.5em; /* Ajusta el tamaño del título según tus preferencias */
+      color: white; /* Texto en color blanco */
+      font-weight: bold; /* Texto en negrita */
+      text-transform: uppercase; /* Texto en mayúsculas */
+     padding: 10px; /* Añade espaciado interno alrededor del título */
+      background: rgba(0, 0, 0, 0.5); /* Fondo negro con transparencia (ajusta el valor según tus preferencias) */
+      #display: inline; /* Asegura que el fondo se aplique solo al contenido del título */
+    }
+    
+    .data-section h2 {
+      font-size: 2em; /* Ajusta el tamaño del título de datos según tus preferencias */
+      font-weight: bold; /* Texto en negrita */
+      color: white; /* Texto en color blanco */
+      padding: 10px; /* Añade espaciado interno alrededor del título */
+      background: rgba(0, 0, 0, 0.5); /* Fondo negro con transparencia (ajusta el valor según tus preferencias) */
+      #display: inline; /* Asegura que el fondo se aplique solo al contenido del título */
+    }
+    
+    .data-section p {
+      font-size: 1.2em; /* Ajusta el tamaño del texto de datos según tus preferencias */
+      color: white; /* Texto en color blanco */
+      padding: 10px; /* Añade espaciado interno alrededor del título */
+      background: rgba(0, 0, 0, 0.5); /* Fondo negro con transparencia (ajusta el valor según tus preferencias) */
+      font-weight: bold; /* Texto en negrita */
+     # display: inline; /* Asegura que el fondo se aplique solo al contenido del título */
+    }
+    body {
+      background-image: url("/assets/images/pexels-pok-rie-1432794.jpg"); /* Cambia la ruta por la ubicación de tu imagen de fondo */
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed; /* Mantiene la imagen en su lugar al desplazarse la página */
+      background-position: center center;
+    }
+    /* Estilos para el contenedor del video y datos */
+    .container {
+      display: flex;
+      align-items: center;
+      text-align: center; /* Centra el contenido en el eje X */
+      height: 100vh; /* Ocupa toda la altura de la ventana gráfica */
+      #margin-top: 5px;
+    }
+
+    /* Estilos para el video */
+    video {
+      width: 300%; /* Ancho del video (ajusta según tus preferencias) */
+      max-width: 200%; /* Ancho máximo del video */
+      margin: -20px 0 0 -20px;
+      
+      
+    }
+
+    /* Estilos para la sección de datos */
+    .data-section {
+      flex: 1; /* Ocupa el 50% del ancho del contenedor */
+      padding: 20px; /* Añade espaciado interno */
+      margin-left: 180px; /* Añade un margen izquierdo para mover los datos a la derecha */
+    }
+  </style>
+</head>
+<body>
+  <h1>Vista en Tiempo Real</h1>
+  <div class="container">
+    <div>
+      <video controls>
+        <source src="URL_DEL_VIDEO.mp4" type="video/mp4">
+        Tu navegador no soporta la reproducción de video.
+      </video>
+    </div>
+    <div class="data-section">
+      <h2>Datos del Microcontrolador</h2>
+      <p>Distancia 1: <%= @distancia1.distancia1 %></p>
+      <p>Distancia 2: <%= @distancia1.distancia2 %></p>
+    </div>
+  </div>
+</body>
+</html>
