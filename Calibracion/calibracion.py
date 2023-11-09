@@ -1,13 +1,12 @@
 import numpy as np
 import cv2
 import glob
-
 class calibracion():
-
     def __init__(self):
-        self.tablero = (6,4)
-        self.tam_frame = (1280,726)
 
+        self.tablero = (9,6)
+        self.tam_frame = (1280 ,726)
+        print("hola")
         #Criterio
         self.criterio = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
@@ -20,7 +19,8 @@ class calibracion():
         self.puntos_img = []
 
     def calibracion_cam(self):
-        fotos = glob.glob('images/*.jpg')
+        print("hola")
+        fotos = glob.glob('1_C5b8iGTkcgmLZccfeklcmw.png')
         for foto in fotos:
             print (foto)
             img = cv2.imread(foto)
@@ -29,15 +29,14 @@ class calibracion():
             ret, esquinas = cv2.findChessboardCorners(gray, self.tablero, None)
 
             if ret == True:
-                print("Esquinas detectadas en la imagen:", foto)
                 self.puntos_3d.append(self.puntos_obj)
                 esquinas2 = cv2.cornerSubPix(gray, esquinas, (11, 11), (-1, -1), self.criterio)
                 self.puntos_img.append(esquinas)
-                cv2.drawChessboardCorners(img, self.tablero, esquinas2, ret)
-                cv2.imshow("img",img)
+            #cv2.drawChessboardCorners.(img, self.tablero, esquinas2, ret)
+            #cv2.imshow("img",img)
 
         # Calibracion de La camara
-        ret, cameraMatrix, dist, rvecs, tvecs = cv2.calibrateCamera(self.puntos_3d, self.puntos_img, self.tam_frame, None, None)
+        ret, cameraMatrix, dist, rvecs, tveces = cv2.calibrateCamera(self.puntos_3d, self.puntos_img, self.tam_frame,None, None)
 
         print(cameraMatrix, dist)
         return cameraMatrix, dist
