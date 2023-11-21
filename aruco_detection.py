@@ -28,19 +28,16 @@ class ArucoDetector:
             print(f"Error en la detección de marcadores: {e}")
 
     def calculate_scale(self, tvec):
-        # Aquí puedes calcular la escala en función del tvec u otros parámetros
-        # Por ejemplo, si conoces la distancia real entre dos puntos en el objeto y la distancia en píxeles,
-        # puedes calcular la escala.
-        # Asumamos que la distancia real es de 10 unidades y la distancia en píxeles es la mitad del ancho de la imagen.
-        real_distance = 10.0  # Unidades en el mundo real
-        pixel_distance = self.aruco_center[0]  # La mitad del ancho de la imagen
-        scale = real_distance / pixel_distance
+        # Calcula la escala utilizando la diferencia entre las coordenadas X del ArUco y del objeto detectado
+        aruco_x = self.aruco_center[0]
+        obj_x = tvec[0, 0, 0]
+        scale = obj_x / aruco_x
         return scale
 
-    def calculate_distance(self, obj_center):
+    def calculate_distance(self, obj_center_x):
         if self.aruco_scale is not None:
-            # Calcula la distancia en centímetros usando la escala y la posición en píxeles
-            distance_cm = self.aruco_scale * obj_center[0]  # Cambia esta fórmula según tus necesidades
+            # Calcula la distancia en centímetros usando la escala y la posición en píxeles en el eje X
+            distance_cm = self.aruco_scale * obj_center_x
             return distance_cm
         else:
             return None
