@@ -3,12 +3,9 @@ import cv2
 import glob
 
 class Calibracion():
-    print("hola")
     def __init__(self):
-        print("hola1")
         self.tablero = (6, 4)
         self.tam_frame = (1280, 726)
-        print("hola2")
         #Criterio
         self.criterio = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
@@ -21,7 +18,6 @@ class Calibracion():
         self.puntos_img = []
 
     def calibracion_cam(self):
-        print("hola3")
         fotos = glob.glob('C:\\Users\\CreZ#\\Desktop\\2023-A7-CAM-1IMAGEN\\images\\*.jpg')
         for foto in fotos:
             print(foto)

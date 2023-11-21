@@ -1,75 +1,55 @@
 # yolo_detection.py
 import cv2
 import numpy as np
+from ultralytics import YOLO
 import time
 
 class YoloDetector:
-    def __init__(self):
-        self.model = cv2.dnn.readNet("C:\\Users\\CreZ#\\Desktop\\2023-A7-CAM-1IMAGEN\\darknet\\yolov3-tiny.weights",
-                                     "C:\\Users\\CreZ#\\Desktop\\2023-A7-CAM-1IMAGEN\\darknet\\cfg\\yolov3-tiny.cfg")
-        self.classes = []
-        with open("C:\\Users\\CreZ#\\Desktop\\2023-A7-CAM-1IMAGEN\\darknet\\data\\coco.names", "r") as f:
-            self.classes = [line.strip() for line in f.readlines()]
-        self.layer_names = self.model.getLayerNames()
-        self.output_layers = [self.layer_names[i - 1] for i in self.model.getUnconnectedOutLayers()]
-        self.colors = np.random.uniform(0, 255, size=(len(self.classes), 3))
+    def __init__(self, model_path='yolov8n.pt'):
+        self.model = YOLO(model_path)
         self.detected_objects = []
-
-    def get_object_centers(self):
-        centers = []
-        for obj in self.detected_objects:
-            x, y, w, h = obj
-            center_x = x + w // 2
-            center_y = y + h // 2
-            centers.append((center_x, center_y))
-        return centers
 
     def detect_objects(self, frame, width, height, frame_id, starting_time):
-        blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
-        self.model.setInput(blob)
-        outs = self.model.forward(self.output_layers)
-        boxes = []
-        confidences = []
-        class_ids = []
+        # Realiza la detección con YOLOv8
+        results = self.model(frame)
 
-        font = cv2.FONT_HERSHEY_PLAIN
+        # Asegúrate de que results es una lista
+        if not isinstance(results, list):
+            results = [results]
 
-        for out in outs:
-            for detection in out:
-                scores = detection[5:]
-                class_id = np.argmax(scores)
-                confidence = scores[class_id]
-                if confidence > 0.2:
-                    # Objeto detectado
-                    center_x = int(detection[0]* width)
-                    center_y = int(detection [1] * height)
-                    w = int(detection[2] * width)
-                    h = int(detection[3] * height)
-                    # Coordenadas del rectángulo
-                    x = int(center_x - w/2)
-                    y = int(center_y - h/2)
-                    boxes.append([x, y, w, h])
-                    confidences.append(float (confidence) )
-                    class_ids.append(class_id)
-        #self.detected_objects = boxes
-        indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.4, 0.3)
-        self.detected_objects = []
-        for i in range(len(boxes)):
-            if i in indexes:
-                x, y, w, h = boxes[i]
-                self.detected_objects.append((x, y, w, h))
-        for i in range(len(boxes)):
-            if i in indexes:
-                x,y, w, h = boxes[i]
-                label = str(self.classes[class_ids[i]])
+        # Itera sobre los resultados para cada imagen
+        for result in results:
+            # Modifica esta línea para acceder a las coordenadas de las cajas a través de xyxy
+            boxes = result.boxes.xyxy.cpu().numpy()
+            confidences = result.boxes.conf.cpu().numpy()
+            class_ids = result.boxes.cls.cpu().numpy().astype(int)
+
+            # Filtra las cajas basándote en el umbral de confianza
+            mask = confidences > 0.2
+            boxes = boxes[mask]
+            class_ids = class_ids[mask]
+
+            self.detected_objects = []
+            for i, box in enumerate(boxes):
+                x, y, w, h = box[:4]
+                self.detected_objects.append((int(x), int(y), int(w), int(h)))
+
+            # Dibuja los cuadros delimitadores en el frame
+            for i, box in enumerate(boxes):
+                x, y, w, h = box[:4]
+                label = self.model.names[class_ids[i]]
                 confidence = confidences[i]
-                color = self.colors[class_ids[i]]
-                cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-                cv2.rectangle(frame, (x, y), (x + w, y + 30), color, -1)
-                cv2.putText(frame, label + " " + str(round(confidence, 2)), (x, y + 30), font, 3, (255,255,255), 3)
+                color = (0, 255, 0)  # Puedes establecer tu color deseado
+                cv2.rectangle(frame, (int(x), int(y)), (int(x + w), int(y + h)), color, 2)
+                cv2.putText(frame, f"{label} {confidence:.2f}", (int(x), int(y) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+        # Tu código existente para calcular FPS
         elapsed_time = time.time() - starting_time
         fps = frame_id / elapsed_time
-        cv2.putText(frame, "FPS: " + str(round(fps, 2)), (10, 50), font, 3, (0, 0, 0), 3)
+        cv2.putText(frame, f"FPS: {fps:.2f}", (10, 50), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 0), 3)
+
+    def get_object_centers(self):
+        return [(obj[0] + obj[2] // 2, obj[1] + obj[3] // 2) for obj in self.detected_objects]
 
     def get_detected_objects(self):
         return self.detected_objects
