@@ -12,7 +12,12 @@ class ArucoDetector:
     def detect_markers(self, frame, matrix, dist):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         esquinas, ids, candidatos_malos = cv2.aruco.detectMarkers(gray, self.diccionario, parameters=self.parametros)
-
+        if esquinas:
+            # La lista de esquinas no está vacía
+            esquina1 = esquinas[0][0]
+            print("Esquina 1:", esquina1)
+        else:
+            print("No se detectaron esquinas.")
         try:
             if np.all(ids is not None):
                 for i in range(len(ids)):
@@ -22,22 +27,34 @@ class ArucoDetector:
                     c_x = np.mean(esquinas[i][:, :, 0])
                     c_y = np.mean(esquinas[i][:, :, 1])
                     self.aruco_center = (c_x, c_y)
-                    self.aruco_scale = self.calculate_scale(tvec)
+                    self.aruco_scale = self.calculate_scale(tvec, 0)
+                    print("----------------------------------")
+                    print(self.aruco_scale)
                     cv2.putText(frame, "id" + str(ids[i]), (int(c_x), int(c_y)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (50, 225, 250), 2)
         except Exception as e:
             print(f"Error en la detección de marcadores: {e}")
 
-    def calculate_scale(self, tvec):
-        # Calcula la escala utilizando la diferencia entre las coordenadas X del ArUco y del objeto detectado
-        aruco_x = self.aruco_center[0]
-        obj_x = tvec[0, 0, 0]
-        scale = obj_x / aruco_x
-        return scale
+    def calculate_scale(self, tvec, aruco_id):
+        # Define las dimensiones conocidas del ArUco (ancho y alto en metros)
+        aruco_width = 0.02  # Modifica este valor según las dimensiones reales de tu ArUco
+        aruco_height = 0.02 # Modifica este valor según las dimensiones reales de tu ArUco
 
-    def calculate_distance(self, obj_center_x):
+        # Calcula la escala utilizando las dimensiones conocidas y las coordenadas 3D del ArUco
+        scale_x = aruco_width / abs(tvec[0, 0, 2])
+        scale_y = aruco_height / abs(tvec[0, 0, 1])
+
+        # Usa la escala según la dirección en la que se encuentra el ArUco
+        if aruco_id == 0:  # Modifica esto según la ID del ArUco que deseas seguir
+            scale = scale_x
+        else:
+            scale = scale_y
+
+        return (scale_x,scale_y)
+
+    def calculate_distance(self, obj_center_x, obj_center_y, aruco_id):
         if self.aruco_scale is not None:
             # Calcula la distancia en centímetros usando la escala y la posición en píxeles en el eje X
-            distance_cm = self.aruco_scale * obj_center_x
+            distance_cm = (self.aruco_scale[0] * obj_center_x)
             return distance_cm
         else:
             return None
