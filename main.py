@@ -64,10 +64,11 @@ def main():
                 aruco_center = (int(aruco_center[0]), int(aruco_center[1]))
 
             # Calcular y mostrar la distancia en el video
-                distance_cm = aruco_detector.calculate_distance(int(aruco_center[0]), int(obj_center[0]), 0)
+                distance_cm = aruco_detector.calculate_distance(int(obj_center[0]), int(obj_center[1]), annotated_frame)
                 if distance_cm is not None:
                     cv2.putText(annotated_frame, f"{distance_cm:.2f} cm", obj_center, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255),
                             2)
+
 
             cv2.line(annotated_frame, aruco_center, obj_center, (0, 255, 0), 2)
 
