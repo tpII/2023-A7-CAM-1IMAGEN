@@ -14,21 +14,26 @@ def main():
     yolo_detector = YoloDetector(model_path='yolov8n.pt')  # Especifica la ruta correcta a tu modelo YOLO
 
     # Calibración de la cámara
-    calibracion = Calibracion()
-    matrix = np.array([[1.03545930e+03, 0.00000000e+00, 5.31247578e+02],
-                       [0.00000000e+00, 9.97638715e+02, 2.44565220e+02],
-                       [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
-    dist = np.array([[-0.08522228, 1.17506412, -0.01180236, 0.0784548, -2.5872603]])
+    #calibracion = Calibracion()
+    #matrix, dist = calibracion.calibracion_cam()
+    matrix = np.array([[1424, 0, 550.01],
+                          [0, 14553, 82.193],
+                          [0, 0, 1]])
+    dist = np.array([[-0.15325, 7.0021, -0.0070403, 0.10798, -29.829]])
+
     print("Matriz de la cámara: ", matrix)
     print("Coeficiente de Distorsión ", dist)
 
     # Inicializamos la cámara
-    cap = cv2.VideoCapture(1    )
+    cap = cv2.VideoCapture(1)
     width = int(cap.get(3))
     height = int(cap.get(4))
     font = cv2.FONT_HERSHEY_PLAIN
     starting_time = time.time()
     frame_id = 0
+
+    # Agregar una lista para almacenar las escalas correspondientes a cada ArUco
+    aruco_scales = None  # Modificar según la cantidad de ArUcos
 
     while True:
         ret, frame = cap.read()
@@ -36,29 +41,39 @@ def main():
         # Detección de ArUco
         aruco_detector.detect_markers(frame, matrix, dist)
 
+        # Actualizar las escalas y distancias para cada ArUco
+        aruco_scale = aruco_detector.get_aruco_scale()
+        if aruco_scale is not None:
+            aruco_scales = aruco_scale
+
         # Detección de YOLO
-        yolo_detector.detect_objects(frame, width, height, frame_id, starting_time)
+        annotated_frame, boxes = yolo_detector.detect_objects(frame)
 
-        # Dibujar línea entre el centro del ArUco y los objetos detectados
-        aruco_center = aruco_detector.get_aruco_center()
-        obj_centers = yolo_detector.get_object_centers()
+        for box in boxes:
+            x, y, w, h = box.xywh[0]
 
-        if aruco_center is not None and obj_centers:
-            aruco_center = (int(aruco_center[0]), int(aruco_center[1]))
+            x1 = x
+            y1 = y
+            obj_center = [int(x1.item()), int(y1.item())]
 
-            for obj_center in obj_centers:
-                obj_center = (int(obj_center[0]), int(obj_center[1]))
+            # Dibujar línea entre el centro del ArUco seleccionado y los objetos detectados
+            selected_aruco_id = 0  # Modificar según la ID del ArUco que deseas seguir
+            aruco_center = aruco_detector.get_aruco_center()
 
-                # Dibujar la línea
-                cv2.line(frame, aruco_center, obj_center, (0, 255, 0), 2)
+            if aruco_center is not None:
+                aruco_center = (int(aruco_center[0]), int(aruco_center[1]))
 
-                # Calcular y mostrar la distancia en el video
-                distance_cm = aruco_detector.calculate_distance(obj_center[0])
+            # Calcular y mostrar la distancia en el video
+                distance_cm = aruco_detector.calculate_distance(int(aruco_center[0]), int(obj_center[0]), 0)
                 if distance_cm is not None:
-                    cv2.putText(frame, f"{distance_cm:.2f} cm", obj_center, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                    cv2.putText(annotated_frame, f"{distance_cm:.2f} cm", obj_center, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255),
+                            2)
+
+            cv2.line(annotated_frame, aruco_center, obj_center, (0, 255, 0), 2)
 
         # Mostramos el frame resultante
-        cv2.imshow("Combined Detection", frame)
+        cv2.imshow("Combined Detection", annotated_frame)
+
 
         # Oprimiendo la tecla "q" finalizamos el proceso
         if cv2.waitKey(1) & 0xFF == ord("q"):
