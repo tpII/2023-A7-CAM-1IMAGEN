@@ -18,7 +18,7 @@ class Calibracion():
         self.puntos_img = []
 
     def calibracion_cam(self):
-        fotos = glob.glob('C:\\Users\\CreZ#\\Desktop\\2023-A7-CAM-1IMAGEN\\images\\*.jpg')
+        fotos = glob.glob('C:\\Users\\Cris\\Desktop\\Facultad\\Taller de Proyecto II\\2023-A7-CAM-1IMAGEN\\images\\*.jpg')
         for foto in fotos:
             print(foto)
             img = cv2.imread(foto)
