@@ -17,6 +17,7 @@ class YoloDetector:
         annotated_frame = results[0].plot()
 
         boxes = results[0].boxes
+        #print("BOXES", boxes)
 
         return annotated_frame, boxes
 
