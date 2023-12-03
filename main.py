@@ -4,6 +4,7 @@ import numpy as np
 from calibracion import *
 from aruco_detection import ArucoDetector
 from yolo_detection import YoloDetector
+from no_chocar import *
 import time
 
 def apply_perspective_transform(frame, M):
@@ -31,7 +32,7 @@ def main():
     print("Coeficiente de Distorsión ", dist)
 
     # Inicializamos la cámara
-    cap = cv2.VideoCapture("http://192.168.137.143:81/stream")
+    cap = cv2.VideoCapture("http://192.168.137.129:81/stream")
     #cap = cv2.VideoCapture("rtsp://192.168.137.246:8554/mjpeg/1")
     width = 1024
     height = 768
@@ -41,6 +42,9 @@ def main():
 
     # Agregar una lista para almacenar las escalas correspondientes a cada ArUco
     aruco_scales = None  # Modificar según la cantidad de ArUcos
+
+    nc = NoChocar
+
 
     while True:
         ret, frame = cap.read()
@@ -71,7 +75,7 @@ def main():
                     if aruco_center is not None:
                         aruco_center = (int(aruco_center[0]), int(aruco_center[1]))
 
-                    # Calcular y mostrar la distancia en el video
+                    # Calcular y mostrar la distancia en el video - le paso las coordenadas x,y del centro del objeto
                         distance_result = aruco_detector.calculate_distance(int(obj_center[0]), int(obj_center[1]),
                                                                             annotated_frame)
                         if distance_result is not None and aruco_id == 1:
@@ -81,6 +85,10 @@ def main():
                             cv2.putText(annotated_frame, f"{distance_cm:.2f} cm", obj_center, cv2.FONT_HERSHEY_SIMPLEX,
                                         0.5, (255, 255, 255), 2)
                             cv2.line(annotated_frame, aruco_center, obj_center, (0, 255, 0), 2)
+
+                            # Manejo del auto segun la distancia actual
+                            print("-------------------------------:::::::  ",int(obj_center[0]))
+                            nc.no_chocar(distance_cm, int(obj_center[0]))
 
         # Mostramos el frame resultante
         if zero_ok and ocho_ok:
