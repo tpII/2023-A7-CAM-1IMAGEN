@@ -4,38 +4,71 @@ import numpy as np
 from calibracion import *
 from aruco_detection import ArucoDetector
 from yolo_detection import YoloDetector
-from no_chocar import *
+import mqtt
 import time
+import concurrent.futures
 
+
+D_MAX = 20.0
+W_FRAME = 480
+
+# Inicializar variables compartidas
+distance_cm = None
+obj_center = None
 def apply_perspective_transform(frame, M):
     transformed_frame = cv2.warpPerspective(frame, M, (frame.shape[1], frame.shape[0]))
     return transformed_frame
 
+# Función para enviar por MQTT
+def send_mqtt(distance_cm, x_coordinate):
+    # Aquí puedes colocar el código para enviar por MQTT
+    mqtt.send_message(distance_cm, x_coordinate)
+
+# Función para el cálculo de distancia
+def calculate_distance(aruco_detector, obj_center, annotated_frame, start_time):
+    aruco_center = aruco_detector.get_aruco_center()
+    if aruco_center is not None:
+        aruco_center = (int(aruco_center[0]), int(aruco_center[1]))
+
+    # Calcular y mostrar la distancia en el video
+    distance_result = aruco_detector.calculate_distance(int(obj_center[0]), int(obj_center[1]), annotated_frame)
+    if distance_result is not None and aruco_detector.get_aruco_id() == 1:
+        distance_cm = distance_result * 8.57
+        elapsed_time = time.time() - start_time
+        print(f"Tiempo transcurrido desde el inicio: {elapsed_time:.2f} segundos")
+
+        cv2.putText(annotated_frame, f"{distance_cm:.2f} cm", obj_center, cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5, (255, 255, 255), 2)
+        cv2.line(annotated_frame, aruco_center, obj_center, (0, 255, 0), 2)
+        # Enviar por MQTT en un hilo separado
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.submit(send_mqtt, distance_cm, obj_center[0])
 def main():
+    # Restablecer el evento al inicio del programa
     # Inicializamos el detector de ArUcoq
     aruco_detector = ArucoDetector()
     # Inicializamos el detector de YOLO
     yolo_detector = YoloDetector(model_path='yolov8n.pt')  # Especifica la ruta correcta a tu modelo YOLO
-
     # Calibración de la cámara
-    calibracion = Calibracion()
+    #calibracion = Calibracion()
     #matrix, dist, M = calibracion.calibracion_cam()
-    matrix = np.array([[1178.8, 0, 622.96],
-                      [0, 617.02, 304.99],
-                        [0, 0, 1]])
-    dist = np.array([[-1.0978, 1.0662, 0.047216, -0.049225, -0.45228]])
+    matrix = np.array([[8606.9, 0, 575.19],
+                    [0, 1642.5, 448.25],
+                    [0, 0, 1]])
+    dist = np.array([[-6.4083, 49.944, 0.12854, 0.0032317, -161.25]])
     M = np.array([[1, 0, 0],
-                [0, 1, 0],
-                [1.226e-19, 0, 1]])
+               [0, 1, 0],
+              [1.226e-19, 0, 1]])
 
     print("Matriz de la cámara: ", matrix)
     print("Coeficiente de Distorsión ", dist)
 
     # Inicializamos la cámara
-    cap = cv2.VideoCapture("http://192.168.137.129:81/stream")
+    cap = cv2.VideoCapture("http://192.168.137.44:81/stream")
+    #cap = cv2.VideoCapture(1)
     #cap = cv2.VideoCapture("rtsp://192.168.137.246:8554/mjpeg/1")
-    width = 1024
-    height = 768
+    width = 640
+    height = 480
     font = cv2.FONT_HERSHEY_PLAIN
     starting_time = time.time()
     frame_id = 0
@@ -43,10 +76,8 @@ def main():
     # Agregar una lista para almacenar las escalas correspondientes a cada ArUco
     aruco_scales = None  # Modificar según la cantidad de ArUcos
 
-    nc = NoChocar
-
-
     while True:
+        start_time = time.time()  # Guarda el tiempo de inicio
         ret, frame = cap.read()
         frame = apply_perspective_transform(frame, M)
         # Detección de ArUco
@@ -62,33 +93,13 @@ def main():
         for box in boxes:
             x, y, w, h = box.xywh[0]
             x1 = x
-            y1 = y+(h/2)
+            y1 = y + (h / 2)
 
-            #if cv2.waitKey(1) & 0xFF == ord("p"):
-            #    print("ANCHO: ",w, "LARGO: ",h)
             obj_center = [int(x1.item()), int(y1.item())]
             if zero_x is not None and ocho_x is not None:
-                if not (x1+(w/2) < ocho_x or x1-(w/2) > zero_x):
+                if not (((x1 + (w / 2) < ocho_x or x1 - (w / 2) > zero_x)) or (y1 + h / 3) > ocho_y):
                     # Dibujar línea entre el centro del ArUco seleccionado y los objetos detectados
-                    aruco_center = aruco_detector.get_aruco_center()
-
-                    if aruco_center is not None:
-                        aruco_center = (int(aruco_center[0]), int(aruco_center[1]))
-
-                    # Calcular y mostrar la distancia en el video - le paso las coordenadas x,y del centro del objeto
-                        distance_result = aruco_detector.calculate_distance(int(obj_center[0]), int(obj_center[1]),
-                                                                            annotated_frame)
-                        if distance_result is not None and aruco_id == 1:
-                            #distance_cm = (distance_result/(w*aruco_scale))
-                            #distance_cm = distance_result/15
-                            distance_cm = distance_result*11
-                            cv2.putText(annotated_frame, f"{distance_cm:.2f} cm", obj_center, cv2.FONT_HERSHEY_SIMPLEX,
-                                        0.5, (255, 255, 255), 2)
-                            cv2.line(annotated_frame, aruco_center, obj_center, (0, 255, 0), 2)
-
-                            # Manejo del auto segun la distancia actual
-                            print("-------------------------------:::::::  ",int(obj_center[0]))
-                            nc.no_chocar(distance_cm, int(obj_center[0]))
+                    calculate_distance(aruco_detector, obj_center, annotated_frame, start_time)
 
         # Mostramos el frame resultante
         if zero_ok and ocho_ok:
@@ -102,7 +113,6 @@ def main():
         # Oprimiendo la tecla "q" finalizamos el proceso
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
-
     cap.release()
     cv2.destroyAllWindows()
 
