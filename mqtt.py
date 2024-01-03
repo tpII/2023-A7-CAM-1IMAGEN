@@ -1,6 +1,6 @@
 import paho.mqtt.publish as publish
 
-mqtt_server = "broker.mqtt-dashboard.com"
+mqtt_server = "192.168.137.1"
 mqtt_port = 1883
 topic = "inTopic"
 
