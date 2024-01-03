@@ -8,9 +8,15 @@ import mqtt
 import time
 
 W_FRAME = 480
+ocho_x = 120
+ocho_y = 339
+zero_x = 604
+zero_y = 373
+zero_ok = True
+ocho_ok = True
 
 # Inicializar variables compartidas
-distance_cm = None
+distance_cm = 500
 obj_center = None
 def apply_perspective_transform(frame, M):
     transformed_frame = cv2.warpPerspective(frame, M, (frame.shape[1], frame.shape[0]))
@@ -30,20 +36,20 @@ def calculate_distance(aruco_detector, obj_center, annotated_frame, start_time):
     # Calcular y mostrar la distancia en el video
     distance_result = aruco_detector.calculate_distance(int(obj_center[0]), int(obj_center[1]), annotated_frame)
     if distance_result is not None and aruco_detector.get_aruco_id() == 1:
-        distance_cm = distance_result * 6.2
+        distance_cm = distance_result*5.982
         elapsed_time = time.time() - start_time
         print(f"Tiempo transcurrido desde el inicio: {elapsed_time:.2f} segundos")
 
         cv2.putText(annotated_frame, f"{distance_cm:.2f} cm", obj_center, cv2.FONT_HERSHEY_SIMPLEX,
                     0.5, (255, 255, 255), 2)
         cv2.line(annotated_frame, aruco_center, obj_center, (0, 255, 0), 2)
-        if distance_cm < 25:
+        if distance_cm < 35:
+            send_mqtt(distance_cm, obj_center[0])
+            annotated_frame[:, :] = 0
+            distance_cm = 999
             send_mqtt(distance_cm, obj_center[0])
             print("LE MANDEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
-            distance_cm= 9999
-            time.sleep(6)
-            send_mqtt(distance_cm, obj_center[0])
-
+            time.sleep(2)
 
 def main():
     # Restablecer el evento al inicio del programa
@@ -66,7 +72,7 @@ def main():
     print("Coeficiente de Distorsión ", dist)
 
     # Inicializamos la cámara
-    cap = cv2.VideoCapture("http://192.168.137.189:81/stream")
+    cap = cv2.VideoCapture("http://192.168.137.217:81/stream")
     #cap = cv2.VideoCapture(1)
     #cap = cv2.VideoCapture("rtsp://192.168.137.246:8554/mjpeg/1")
     width = 640
@@ -83,7 +89,8 @@ def main():
         ret, frame = cap.read()
         frame = apply_perspective_transform(frame, M)
         # Detección de ArUco
-        ocho_x, ocho_y, zero_x, zero_y, ocho_ok, zero_ok = aruco_detector.detect_markers(frame, matrix, dist)
+        #ocho_x, ocho_y, zero_x, zero_y, ocho_ok, zero_ok = aruco_detector.detect_markers(frame, matrix, dist)
+        _, _, _, _, _, _ = aruco_detector.detect_markers(frame, matrix, dist)
         aruco_scale = aruco_detector.get_aruco_scale()
         aruco_id = aruco_detector.get_aruco_id()
         if aruco_scale is not None:
@@ -99,7 +106,7 @@ def main():
 
             obj_center = [int(x1.item()), int(y1.item())]
             if zero_x is not None and ocho_x is not None:
-                if not (((x1 + (w / 2) < ocho_x or x1 - (w / 2) > zero_x)) or (y1 + h / 2) > ocho_y):
+                if not (((x1 + (w / 2) < ocho_x or x1 - (w / 2) > zero_x)) or (y1)> ocho_y):
                     # Dibujar línea entre el centro del ArUco seleccionado y los objetos detectados
                     calculate_distance(aruco_detector, obj_center, annotated_frame, start_time)
 
@@ -109,6 +116,11 @@ def main():
             cv2.line(annotated_frame, (zero_x, zero_y), (zero_x, 0), (0, 255, 0), 2)
             cv2.circle(annotated_frame, (ocho_x, ocho_y), 10, 255, -1)
             cv2.circle(annotated_frame, (zero_x, zero_y), 10, 255, -1)
+            #print("8x ", ocho_x)
+            #print("8y ", ocho_y)
+            #print("0x ", zero_x)
+            #print("0y ", zero_y)
+
         cv2.imshow("Combined Detection", annotated_frame)
 
 
