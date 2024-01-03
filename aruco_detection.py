@@ -86,7 +86,7 @@ class ArucoDetector:
             #print("linea_Y", linea_y)
             linea_largo = math.sqrt(linea_x**2 + linea_y**2)
             #print("linea total: ", linea_largo)
-            distance_cm = (self.aruco_scale * linea_largo)
+            distance_cm = (self.aruco_scale * linea_y)
             if self.aruco_id == 1:
                 cv2.circle(frame, (int(obj_center_x), int(obj_center_y)), 10, 255, -1)
                 cv2.circle(frame, (int(self.aruco_center[0]),int(self.aruco_center[1])), 10, 0, -1)
